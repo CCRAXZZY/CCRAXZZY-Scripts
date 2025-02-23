@@ -1,0 +1,307 @@
+-- Definindo o jogador local
+local player = game.Players.LocalPlayer
+
+-- Criando a ScreenGui (interface gráfica)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CCRAXZZYHub"
+screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false -- Impede que o hub desapareça ao morrer
+
+-- Criando o Frame principal com design minimalista
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 270) -- Tamanho vertical ajustado
+frame.Position = UDim2.new(0.5, -100, 0.5, -135) -- Centralizado com o novo tamanho
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Adicionando bordas arredondadas ao Frame
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = frame
+
+-- Tornando o Frame arrastável
+local dragging, dragInput, dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Criando o título "CCRAXZZY V0.2"
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "CCRAXZZY V0.2"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+-- Criando o botão de fechar (X)
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 20, 0, 20)
+closeButton.Position = UDim2.new(1, -25, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = 14
+closeButton.Font = Enum.Font.Gotham
+closeButton.Parent = frame
+
+-- Adicionando bordas arredondadas ao botão de fechar
+local uiCornerClose = Instance.new("UICorner")
+uiCornerClose.CornerRadius = UDim.new(0, 5)
+uiCornerClose.Parent = closeButton
+
+-- Criando o botão ESP
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(0.9, 0, 0, 30)
+espButton.Position = UDim2.new(0.05, 0, 0.15, 0)
+espButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+espButton.Text = "ESP: OFF"
+espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+espButton.TextSize = 14
+espButton.Font = Enum.Font.Gotham
+espButton.Parent = frame
+
+-- Adicionando bordas arredondadas ao botão ESP
+local uiCornerEsp = Instance.new("UICorner")
+uiCornerEsp.CornerRadius = UDim.new(0, 5)
+uiCornerEsp.Parent = espButton
+
+-- Criando o botão Full Bright
+local fullBrightButton = Instance.new("TextButton")
+fullBrightButton.Size = UDim2.new(0.9, 0, 0, 30)
+fullBrightButton.Position = UDim2.new(0.05, 0, 0.3, 0)
+fullBrightButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+fullBrightButton.Text = "Full Bright: OFF"
+fullBrightButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+fullBrightButton.TextSize = 14
+fullBrightButton.Font = Enum.Font.Gotham
+fullBrightButton.Parent = frame
+
+-- Adicionando bordas arredondadas ao botão Full Bright
+local uiCornerFullBright = Instance.new("UICorner")
+uiCornerFullBright.CornerRadius = UDim.new(0, 5)
+uiCornerFullBright.Parent = fullBrightButton
+
+-- Criando o botão No Recoil (Clicável uma vez por clique)
+local noRecoilButton = Instance.new("TextButton")
+noRecoilButton.Size = UDim2.new(0.9, 0, 0, 30)
+noRecoilButton.Position = UDim2.new(0.05, 0, 0.45, 0)
+noRecoilButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+noRecoilButton.Text = "No Recoil"
+noRecoilButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+noRecoilButton.TextSize = 14
+noRecoilButton.Font = Enum.Font.Gotham
+noRecoilButton.Parent = frame
+
+-- Adicionando bordas arredondadas ao botão No Recoil
+local uiCornerNoRecoil = Instance.new("UICorner")
+uiCornerNoRecoil.CornerRadius = UDim.new(0, 5)
+uiCornerNoRecoil.Parent = noRecoilButton
+
+-- Criando o botão Teleporte (Clicável com clique ou tecla Y)
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(0.9, 0, 0, 30)
+teleportButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+teleportButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+teleportButton.Text = "Teleporte"
+teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+teleportButton.TextSize = 14
+teleportButton.Font = Enum.Font.Gotham
+teleportButton.Parent = frame
+
+-- Adicionando bordas arredondadas ao botão Teleporte
+local uiCornerTeleport = Instance.new("UICorner")
+uiCornerTeleport.CornerRadius = UDim.new(0, 5)
+uiCornerTeleport.Parent = teleportButton
+
+-- **Funcionalidade ESP (Versão Normal, Atualizando Novos Jogadores)**
+local espEnabled = false
+
+-- Função para aplicar o ESP a um jogador
+local function applyESP(player)
+    if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local highlight = player.Character:FindFirstChild("Highlight")
+        if not highlight then
+            highlight = Instance.new("Highlight")
+            highlight.Adornee = player.Character
+            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Cor padrão (vermelho)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.Parent = player.Character
+        end
+    end
+end
+
+-- Função para ativar o ESP com loop
+local function enableESP()
+    espEnabled = true
+    espButton.Text = "ESP: ON"
+    spawn(function()
+        while espEnabled do
+            for _, p in pairs(game.Players:GetPlayers()) do
+                applyESP(p)
+            end
+            wait(0.5) -- Atualiza a cada 0.5 segundos
+        end
+    end)
+    -- Monitora novos jogadores imediatamente
+    game.Players.PlayerAdded:Connect(function(p)
+        if espEnabled then
+            applyESP(p) -- Aplica ESP imediatamente ao novo jogador
+            spawn(function()
+                while espEnabled do
+                    applyESP(p) -- Mantém o ESP atualizado para o novo jogador
+                    wait(0.5)
+                end
+            end)
+        end
+    end)
+end
+
+-- Função para desativar o ESP
+local function disableESP()
+    espEnabled = false
+    espButton.Text = "ESP: OFF"
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer and p.Character then
+            local highlight = p.Character:FindFirstChild("Highlight")
+            if highlight then
+                highlight:Destroy()
+            end
+        end
+    end
+end
+
+-- Conectando o botão ESP
+espButton.MouseButton1Click:Connect(function()
+    if espEnabled then
+        disableESP()
+    else
+        enableESP()
+    end
+end)
+
+-- **Funcionalidade Full Bright (Mantido, já corrigido para não ficar claro para sempre)**
+local fullBrightEnabled = false
+local lighting = game.Lighting
+local defaultSettings = {
+    Brightness = lighting.Brightness,
+    FogEnd = lighting.FogEnd,
+    GlobalShadows = lighting.GlobalShadows,
+    Ambient = lighting.Ambient,
+    OutdoorAmbient = lighting.OutdoorAmbient
+}
+
+-- Função para ativar o Full Bright
+local function enableFullBright()
+    fullBrightEnabled = true
+    fullBrightButton.Text = "Full Bright: ON"
+    lighting.Brightness = 5 -- Brilho alto
+    lighting.FogEnd = 1000000 -- Remove névoa
+    lighting.GlobalShadows = false -- Remove sombras
+    lighting.Ambient = Color3.fromRGB(255, 255, 255) -- Luz ambiente total
+    lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) -- Luz externa total
+end
+
+-- Função para desativar o Full Bright
+local function disableFullBright()
+    fullBrightEnabled = false
+    fullBrightButton.Text = "Full Bright: OFF"
+    -- Restaura todos os valores padrão capturados antes da ativação
+    lighting.Brightness = defaultSettings.Brightness
+    lighting.FogEnd = defaultSettings.FogEnd
+    lighting.GlobalShadows = defaultSettings.GlobalShadows
+    lighting.Ambient = defaultSettings.Ambient
+    lighting.OutdoorAmbient = defaultSettings.OutdoorAmbient
+end
+
+-- Conectando o botão Full Bright
+fullBrightButton.MouseButton1Click:Connect(function()
+    if fullBrightEnabled then
+        disableFullBright()
+    else
+        enableFullBright()
+    end
+end)
+
+-- **Funcionalidade No Recoil (Clicável uma vez por clique)**
+local function executeNoRecoil()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/sytcal/town/refs/heads/main/NoRecoil"))()
+end
+
+-- Conectando o botão No Recoil
+noRecoilButton.MouseButton1Click:Connect(function()
+    executeNoRecoil()
+end)
+
+-- **Funcionalidade Teleporte (Clicável com clique ou tecla Y, atualizado para renascimentos)**
+local function updateCharacter()
+    character = player.Character or player.CharacterAdded:Wait()
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+end
+
+-- Conectar ao evento CharacterAdded para atualizar após morte
+player.CharacterAdded:Connect(updateCharacter)
+updateCharacter() -- Inicializa imediatamente
+
+local function teleportForward()
+    if humanoidRootPart and character:FindFirstChild("Humanoid") then
+        local lookVector = humanoidRootPart.CFrame.LookVector
+        local teleportDistance = 10 -- Distância moderada para frente (ajuste conforme necessário)
+        local newPosition = humanoidRootPart.Position + (lookVector * teleportDistance)
+        humanoidRootPart.CFrame = CFrame.new(newPosition)
+    end
+end
+
+-- Conectando o botão Teleporte (clique)
+teleportButton.MouseButton1Click:Connect(function()
+    teleportForward()
+end)
+
+-- Adicionando tecla Y para teleporte
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Y then
+        teleportForward()
+    end
+end)
+
+-- **Funcionalidade do Botão de Fechar**
+closeButton.MouseButton1Click:Connect(function()
+    if espEnabled then
+        disableESP()
+    end
+    if fullBrightEnabled then
+        disableFullBright()
+    end
+    screenGui:Destroy()
+end)
