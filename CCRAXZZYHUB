@@ -1,0 +1,525 @@
+-- Serviços
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local UIS = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+
+-- Variáveis do jogador
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local camera = workspace.CurrentCamera
+
+-- Variáveis de estado
+local savedPosition = nil
+local espEnabled = false
+local fullBrightEnabled = false
+local aimbotEnabled = false
+local isAiming = false
+local hubActive = true -- Controla se o HUB está ativo
+
+-- Configurações do Aimbot
+local fov = 100 -- FOV inicial
+local smoothSpeed = 0.1 -- Smooth inicial
+local activationKey = Enum.UserInputType.MouseButton2 -- Botão direito do mouse
+local verticalOffset = -30 -- Offset para mover o círculo para cima
+
+-- Configurações iniciais do Lighting
+local defaultLighting = {
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    ClockTime = Lighting.ClockTime
+}
+
+-- Função para criar elementos UI
+local function createElement(type, props)
+    local element = Instance.new(type)
+    for prop, value in pairs(props) do
+        if prop == "Parent" then
+            element.Parent = value
+        else
+            element[prop] = value
+        end
+    end
+    return element
+end
+
+-- Função para exibir notificações
+local function showNotification(message)
+    if hubActive then -- Só exibe notificações se o HUB estiver ativo
+        StarterGui:SetCore("SendNotification", {
+            Title = "CCRAXZZY HUB",
+            Text = message,
+            Duration = 2
+        })
+    end
+end
+
+-- ### Criação da Interface Gráfica (UI) ###
+
+-- ScreenGui
+local screenGui = createElement("ScreenGui", {
+    Name = "CCRAXZZYHub",
+    ResetOnSpawn = false,
+    Parent = player.PlayerGui
+})
+
+-- Frame principal
+local mainFrame = createElement("Frame", {
+    Size = UDim2.new(0, 220, 0, 480),
+    Position = UDim2.new(0.5, -110, 0.5, -240),
+    BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+    Parent = screenGui
+})
+createElement("UICorner", {CornerRadius = UDim.new(0, 12), Parent = mainFrame})
+
+-- Sistema de arrasto
+local dragging, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Cabeçalho
+local header = createElement("Frame", {
+    Size = UDim2.new(1, 0, 0, 30),
+    BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+    Parent = mainFrame
+})
+
+createElement("TextLabel", {
+    Size = UDim2.new(0.7, 0, 1, 0),
+    Position = UDim2.new(0.15, 0, 0, 0),
+    Text = "CCRAXZZY HUB V0.4",
+    TextColor3 = Color3.new(1, 1, 1),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16,
+    BackgroundTransparency = 1,
+    Parent = header
+})
+
+local closeButton = createElement("TextButton", {
+    Size = UDim2.new(0, 25, 0, 25),
+    Position = UDim2.new(1, -30, 0.5, -12),
+    BackgroundColor3 = Color3.fromRGB(200, 50, 50),
+    Text = "×",
+    TextSize = 24,
+    Parent = header
+})
+createElement("UICorner", {CornerRadius = UDim.new(1, 0), Parent = closeButton})
+
+-- Função para criar botões com animação
+local yOffset = 40
+local function createHubButton(text, callback)
+    local button = createElement("TextButton", {
+        Size = UDim2.new(0.9, 0, 0, 35),
+        Position = UDim2.new(0.05, 0, 0, yOffset),
+        BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+        Text = text,
+        TextColor3 = Color3.fromRGB(200, 200, 200),
+        TextSize = 14,
+        Font = Enum.Font.Gotham,
+        Parent = mainFrame
+    })
+    createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = button})
+    if callback then
+        button.MouseButton1Click:Connect(function()
+            local originalColor = button.BackgroundColor3
+            button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            wait(0.1)
+            button.BackgroundColor3 = originalColor
+            callback(button)
+        end)
+    end
+    yOffset = yOffset + 40
+    return button
+end
+
+-- ### Botões do HUB ###
+local espButton = createHubButton("ESP: OFF", function(btn)
+    if hubActive then
+        espEnabled = not espEnabled
+        btn.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
+        btn.BackgroundColor3 = espEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+        showNotification(espEnabled and "ESP ativado" or "ESP desativado")
+    end
+end)
+
+local fullBrightButton = createHubButton("FULLBRIGHT: OFF", function(btn)
+    if hubActive then
+        fullBrightEnabled = not fullBrightEnabled
+        btn.Text = "FULLBRIGHT: " .. (fullBrightEnabled and "ON" or "OFF")
+        btn.BackgroundColor3 = fullBrightEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+        if fullBrightEnabled then
+            Lighting.Brightness = 5
+            Lighting.FogEnd = 1000000
+            Lighting.GlobalShadows = false
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            showNotification("Full Brightness ativado")
+        else
+            for prop, value in pairs(defaultLighting) do
+                Lighting[prop] = value
+            end
+            showNotification("Full Brightness desativado")
+        end
+    end
+end)
+
+local noRecoilButton = createHubButton("NO RECOIL", function()
+    if hubActive then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/sytcal/town/refs/heads/main/NoRecoil"))()
+        showNotification("No Recoil ativado")
+    end
+end)
+
+local savePosButton = createHubButton("SALVAR POSIÇÃO (Z)", function(btn)
+    if hubActive and humanoidRootPart then
+        savedPosition = humanoidRootPart.CFrame
+        showNotification("Posição salva")
+    end
+end)
+
+local teleportBackButton = createHubButton("VOLTAR POSIÇÃO (U)", function()
+    if hubActive and savedPosition and humanoidRootPart then
+        humanoidRootPart.CFrame = savedPosition
+        showNotification("Retornando à posição")
+    end
+end)
+
+local teleportForwardButton = createHubButton("TELEPORTE FRENTE (Y)", function()
+    if hubActive and humanoidRootPart then
+        local forwardVector = humanoidRootPart.CFrame.LookVector
+        local newPosition = humanoidRootPart.Position + forwardVector * 10
+        humanoidRootPart.CFrame = CFrame.new(newPosition)
+        showNotification("Teleportado para frente")
+    end
+end)
+
+local aimbotButton = createHubButton("AIMBOT: OFF", function(btn)
+    if hubActive then
+        aimbotEnabled = not aimbotEnabled
+        btn.Text = "AIMBOT: " .. (aimbotEnabled and "ON" or "OFF")
+        btn.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+        showNotification(aimbotEnabled and "Aimbot ativado" or "Aimbot desativado")
+    end
+end)
+
+-- ### Sliders para FOV e Smooth ###
+
+-- FOV Slider
+local fovLabel = createElement("TextLabel", {
+    Size = UDim2.new(0.9, 0, 0, 20),
+    Position = UDim2.new(0.05, 0, 0, yOffset),
+    BackgroundTransparency = 1,
+    Text = "FOV: " .. fov,
+    TextColor3 = Color3.fromRGB(200, 200, 200),
+    TextSize = 14,
+    Font = Enum.Font.Gotham,
+    Parent = mainFrame
+})
+yOffset = yOffset + 25
+
+local fovSlider = createElement("Frame", {
+    Size = UDim2.new(0.9, 0, 0, 10),
+    Position = UDim2.new(0.05, 0, 0, yOffset),
+    BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+    Parent = mainFrame
+})
+
+local fovHandle = createElement("TextButton", {
+    Size = UDim2.new(0, 20, 0, 20),
+    Position = UDim2.new(0, 0, -0.5, 0),
+    BackgroundColor3 = Color3.fromRGB(100, 100, 100),
+    Text = "",
+    Parent = fovSlider
+})
+
+local fovCircle = createElement("Frame", {
+    Size = UDim2.new(0, fov, 0, fov),
+    Position = UDim2.new(0.5, -fov / 2, 0.5, -fov / 2 + verticalOffset),
+    BackgroundTransparency = 0.8,
+    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+    BorderSizePixel = 0,
+    Parent = screenGui
+})
+createElement("UICorner", {CornerRadius = UDim.new(1, 0), Parent = fovCircle})
+fovCircle.Visible = false
+
+local function updateFovSlider(position)
+    local sliderWidth = fovSlider.AbsoluteSize.X
+    local handlePos = math.clamp(position, 0, sliderWidth)
+    fovHandle.Position = UDim2.new(0, handlePos, -0.5, 0)
+    fov = math.floor(10 + (handlePos / sliderWidth) * 390) -- FOV de 10 a 400
+    fovLabel.Text = "FOV: " .. fov
+    fovCircle.Size = UDim2.new(0, fov, 0, fov)
+    fovCircle.Position = UDim2.new(0.5, -fov / 2, 0.5, -fov / 2 + verticalOffset)
+end
+
+fovHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mouseConn
+        mouseConn = UIS.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                local mouseX = input.Position.X
+                local sliderX = fovSlider.AbsolutePosition.X
+                local relativeX = mouseX - sliderX
+                updateFovSlider(relativeX)
+            end
+        end)
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                mouseConn:Disconnect()
+            end
+        end)
+    end
+end)
+yOffset = yOffset + 30
+
+-- Smooth Slider
+local smoothLabel = createElement("TextLabel", {
+    Size = UDim2.new(0.9, 0, 0, 20),
+    Position = UDim2.new(0.05, 0, 0, yOffset),
+    BackgroundTransparency = 1,
+    Text = "Smooth: " .. smoothSpeed,
+    TextColor3 = Color3.fromRGB(200, 200, 200),
+    TextSize = 14,
+    Font = Enum.Font.Gotham,
+    Parent = mainFrame
+})
+yOffset = yOffset + 25
+
+local smoothSlider = createElement("Frame", {
+    Size = UDim2.new(0.9, 0, 0, 10),
+    Position = UDim2.new(0.05, 0, 0, yOffset),
+    BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+    Parent = mainFrame
+})
+
+local smoothHandle = createElement("TextButton", {
+    Size = UDim2.new(0, 20, 0, 20),
+    Position = UDim2.new(0, 0, -0.5, 0),
+    BackgroundColor3 = Color3.fromRGB(100, 100, 100),
+    Text = "",
+    Parent = smoothSlider
+})
+
+local function updateSmoothSlider(position)
+    local sliderWidth = smoothSlider.AbsoluteSize.X
+    local handlePos = math.clamp(position, 0, sliderWidth)
+    smoothHandle.Position = UDim2.new(0, handlePos, -0.5, 0)
+    smoothSpeed = 0.01 + (handlePos / sliderWidth) * 0.99 -- Smooth de 0.01 a 1
+    smoothLabel.Text = "Smooth: " .. string.format("%.2f", smoothSpeed)
+end
+
+smoothHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mouseConn
+        mouseConn = UIS.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                local mouseX = input.Position.X
+                local sliderX = smoothSlider.AbsolutePosition.X
+                local relativeX = mouseX - sliderX
+                updateSmoothSlider(relativeX)
+            end
+        end)
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                mouseConn:Disconnect()
+            end
+        end)
+    end
+end)
+yOffset = yOffset + 30
+
+-- ### Funções de Recursos ###
+
+-- ESP
+local highlights = {}
+local function updateESP()
+    if espEnabled and hubActive then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local highlight = highlights[p]
+                if not highlight or highlight.Adornee ~= p.Character then
+                    if highlight then highlight:Destroy() end
+                    highlight = Instance.new("Highlight")
+                    highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                    highlight.OutlineColor = Color3.new(1, 1, 1)
+                    highlight.Adornee = p.Character
+                    highlight.Parent = p.Character
+                    highlights[p] = highlight
+                end
+            end
+        end
+        for p, highlight in pairs(highlights) do
+            if not p:IsDescendantOf(game) or not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") then
+                highlight:Destroy()
+                highlights[p] = nil
+            end
+        end
+    else
+        for _, highlight in pairs(highlights) do
+            highlight:Destroy()
+        end
+        table.clear(highlights)
+    end
+end
+RunService.Heartbeat:Connect(updateESP)
+
+-- Aimbot
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local closestDistance = fov / 2
+    local circleCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2 + verticalOffset)
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos = camera:WorldToScreenPoint(p.Character.HumanoidRootPart.Position)
+            local distance = (Vector2.new(targetPos.X, targetPos.Y) - circleCenter).Magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestPlayer = p
+            end
+        end
+    end
+    return closestPlayer
+end
+
+local function aimAtTarget(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPos = target.Character.HumanoidRootPart.Position
+        local currentCFrame = camera.CFrame
+        local targetCFrame = CFrame.new(currentCFrame.Position, targetPos)
+        camera.CFrame = currentCFrame:Lerp(targetCFrame, smoothSpeed)
+    end
+end
+
+-- Evento para ativar o aimbot com o botão direito do mouse
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if hubActive and not gameProcessed and input.UserInputType == activationKey and aimbotEnabled then
+        isAiming = true
+        fovCircle.Visible = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == activationKey then
+        isAiming = false
+        fovCircle.Visible = false
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if hubActive and isAiming and aimbotEnabled then
+        local target = getClosestPlayer()
+        aimAtTarget(target)
+    end
+end)
+
+-- Toggle Aimbot com ALT
+local altConnection
+altConnection = UIS.InputBegan:Connect(function(input, gameProcessed)
+    if hubActive and not gameProcessed and input.KeyCode == Enum.KeyCode.LeftAlt then
+        aimbotEnabled = not aimbotEnabled
+        aimbotButton.Text = "AIMBOT: " .. (aimbotEnabled and "ON" or "OFF")
+        aimbotButton.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+        showNotification(aimbotEnabled and "Aimbot ativado" or "Aimbot desativado")
+    end
+end)
+
+-- ### Eventos e Conexões ###
+
+-- Atualizar personagem
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+-- Teclas de atalho (Z, U, Y)
+local inputConnection
+inputConnection = UIS.InputBegan:Connect(function(input, gameProcessed)
+    if hubActive and not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.Z then
+            if humanoidRootPart then
+                savedPosition = humanoidRootPart.CFrame
+                showNotification("Posição salva")
+            end
+        elseif input.KeyCode == Enum.KeyCode.U then
+            if savedPosition and humanoidRootPart then
+                humanoidRootPart.CFrame = savedPosition
+                showNotification("Retornando à posição")
+            end
+        elseif input.KeyCode == Enum.KeyCode.Y then
+            if humanoidRootPart then
+                local forwardVector = humanoidRootPart.CFrame.LookVector
+                local newPosition = humanoidRootPart.Position + forwardVector * 10
+                humanoidRootPart.CFrame = CFrame.new(newPosition)
+                showNotification("Teleportado para frente")
+            end
+        end
+    end
+end)
+
+-- Fechar HUB
+closeButton.MouseButton1Click:Connect(function()
+    -- Desativar todas as funções
+    espEnabled = false
+    fullBrightEnabled = false
+    aimbotEnabled = false
+    isAiming = false
+    hubActive = false -- Definir HUB como inativo
+    
+    -- Restaurar iluminação
+    for prop, value in pairs(defaultLighting) do
+        Lighting[prop] = value
+    end
+    
+    -- Esconder círculo de FOV
+    fovCircle.Visible = false
+    
+    -- Desconectar eventos de input
+    if inputConnection then
+        inputConnection:Disconnect()
+        inputConnection = nil
+    end
+    if altConnection then
+        altConnection:Disconnect()
+        altConnection = nil
+    end
+    
+    -- Destruir a interface
+    screenGui:Destroy()
+    
+    -- Notificar que o HUB foi fechado (esta será a última notificação)
+    StarterGui:SetCore("SendNotification", {
+        Title = "CCRAXZZY HUB",
+        Text = "HUB fechado",
+        Duration = 2
+    })
+end)
